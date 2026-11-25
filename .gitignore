@@ -1,0 +1,27 @@
+# Secrets & Telegram sessions
+.env
+*.env
+!*.env.example
+*.session
+*.session-journal
+
+# Virtual environments & Python cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Runtime artifacts & temporary audio
+logs/*.log
+!logs/.gitkeep
+tmp/
+*.ogg
+*.mp3
+*.wav
+
+# Superpowers scratch
+.superpowers/
