@@ -1,17 +1,17 @@
-# London Restaurant Booking Agent (Telegram MTProto + OpenRouter + Voice)
+# London Restaurant Booking Agent (Telegram MTProto + Google Gemini / OpenRouter + Voice)
 
-Autonomous Telegram agent that initiates a polite **British English** conversation with a London restaurant manager (`@vlad_dev_7`), negotiates and books a table for **2 guests at 17:00 today** (`Europe/London`), escalates any unknown questions to the human owner without hallucinating, supports **bidirectional voice notes** (STT + British TTS), and writes a **single-line decision log** per turn.
+Autonomous Telegram agent that initiates a polite **British English** conversation with a London restaurant manager, negotiates and books a table for **2 guests at 17:00 today** (`Europe/London`), escalates any unknown questions to the human owner without hallucinating, supports **bidirectional voice notes** (STT + British TTS), and writes a **single-line decision log** per turn.
 
 ---
 
 ## Features
 
 - **Initiates Conversation First (MTProto Userbot):** Built on `Telethon` because standard Telegram Bot API bots cannot DM a user first.
-- **Polite British Etiquette & Anti-Hallucination:** Powered by `anthropic/claude-haiku-5.5` via OpenRouter with a strict tool-calling loop (`ask_owner` + `submit_turn`). Anything outside known baseline facts (`Nikita`, `2 guests`, `17:00 today in London`) is escalated to the owner's **Saved Messages (`me`)**.
+- **Polite British Etiquette & Anti-Hallucination:** Powered by **Google Gemini (`gemini-3.8-flash`)** via Google's OpenAI-compatible API (GCP / AI Studio) or OpenRouter, with a strict tool-calling loop (`ask_owner` + `submit_turn` preserving Gemini `thought_signature`s). Anything outside known baseline facts (`Nikita`, `2 guests`, `17:00 today in London`) is escalated to the owner's **Saved Messages (`me`)**.
 - **Mandatory 4-Field Confirmation Guard:** Pydantic + turn-level self-correction ensures `booking_confirmed=True` is only accepted once the restaurant's exact name is known and the final message explicitly repeats **time, date, party size, and restaurant name**.
 - **Message Debouncing:** Coalesces multi-message bursts from the manager (`DEBOUNCE_SECONDS=6.0`, extended automatically while the manager is typing or recording audio).
 - **Voice Messages (Bonus Task):**
-  - **STT:** Converts incoming `.ogg` voice notes to `16kHz mono .wav` via `ffmpeg` and transcribes via OpenRouter multimodal audio (`OPENROUTER_STT_MODEL`).
+  - **STT:** Converts incoming `.ogg` voice notes to `16kHz mono .wav` via `ffmpeg` and transcribes via multimodal audio (`OPENROUTER_STT_MODEL`, default `gemini-3.8-flash`).
   - **TTS:** Synthesizes British speech with `edge-tts` (`en-GB-RyanNeural`) and encodes `.ogg (libopus, voip)` via `ffmpeg` for native Telegram voice waveforms, mirroring the manager's modality (text → text, voice → voice).
 - **Single-Account Self-Test Mode:** Supports testing both roles (Manager in a private 1-person Telegram group + Owner in `Saved Messages`) from a single Telegram account with lock-synchronized self-echo filtering.
 
