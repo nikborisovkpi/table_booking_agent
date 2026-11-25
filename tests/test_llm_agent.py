@@ -224,3 +224,68 @@ async def test_booking_agent_rejects_premature_confirmation_missing_restaurant_i
     assert step == 2
     assert turn.booking_confirmed is True
     assert "Dishoom Covent Garden" in turn.reply_text
+
+
+async def test_booking_agent_preserves_google_thought_signature_across_tool_steps():
+    settings = _make_settings()
+    seen_assistant_messages: list[dict] = []
+    step = 0
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            nonlocal step
+            step += 1
+            if step == 1:
+                tc = SimpleNamespace(
+                    id="call_gemini_1",
+                    type="function",
+                    function=SimpleNamespace(
+                        name="ask_owner",
+                        arguments=json.dumps({"question": "Чи підходить 17:30?"}),
+                    ),
+                    extra_content={"google": {"thought_signature": "sig_abc_123"}},
+                )
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                content=None,
+                                tool_calls=[tc],
+                            )
+                        )
+                    ]
+                )
+
+            assistant_msgs = [
+                m for m in kwargs["messages"] if m.get("role") == "assistant" and m.get("tool_calls")
+            ]
+            seen_assistant_messages.extend(assistant_msgs)
+            return _tool_call_response(
+                "call_gemini_2",
+                "submit_turn",
+                {
+                    "understood": "Manager offered 17:30.",
+                    "decision": "Confirm 17:30 works and ask restaurant name.",
+                    "reply_text": "Half past five works well, thank you. Could I ask the restaurant's name?",
+                    "booking_confirmed": False,
+                    "confirmed_details": None,
+                },
+            )
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+
+    async def fake_ask_owner(question: str) -> str:
+        return "Так, 17:30 підходить"
+
+    agent = BookingAgent(
+        settings=settings,
+        ask_owner_fn=fake_ask_owner,
+        openai_client=fake_client,
+    )
+    turn, _ = await agent.process_manager_message("Would 17:30 work instead?")
+
+    assert step == 2
+    assert len(seen_assistant_messages) == 1
+    forwarded_tc = seen_assistant_messages[0]["tool_calls"][0]
+    assert forwarded_tc["extra_content"] == {"google": {"thought_signature": "sig_abc_123"}}
+    assert "Half past five" in turn.reply_text

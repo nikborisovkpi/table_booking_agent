@@ -3,6 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     # Telegram MTProto credentials
@@ -24,11 +26,39 @@ class Settings(BaseSettings):
     target_chat: str = "@vlad_dev_7"
     self_test_mode: bool = False
 
-    # OpenRouter credentials & models
-    openrouter_api_key: str
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "anthropic/claude-haiku-5.5"
-    openrouter_stt_model: str = "google/gemini-3.6-flash"
+    # LLM credentials & models (Google Gemini / GCP OpenAI-compatible or OpenRouter)
+    openrouter_api_key: str = Field(
+        validation_alias=AliasChoices(
+            "OPENROUTER_API_KEY",
+            "GEMINI_API_KEY",
+            "GOOGLE_API_KEY",
+            "LLM_API_KEY",
+        )
+    )
+    openrouter_base_url: str = Field(
+        default="https://generativelanguage.googleapis.com/v1beta/openai/",
+        validation_alias=AliasChoices(
+            "OPENROUTER_BASE_URL",
+            "LLM_BASE_URL",
+            "GEMINI_BASE_URL",
+        ),
+    )
+    openrouter_model: str = Field(
+        default="gemini-3.8-flash",
+        validation_alias=AliasChoices(
+            "OPENROUTER_MODEL",
+            "LLM_MODEL",
+            "GEMINI_MODEL",
+        ),
+    )
+    openrouter_stt_model: str = Field(
+        default="gemini-3.8-flash",
+        validation_alias=AliasChoices(
+            "OPENROUTER_STT_MODEL",
+            "LLM_STT_MODEL",
+            "STT_MODEL",
+        ),
+    )
 
     # Guest & booking baseline facts
     guest_name: str = "Nikita"

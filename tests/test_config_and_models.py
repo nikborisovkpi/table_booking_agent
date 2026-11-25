@@ -17,8 +17,9 @@ def test_settings_loads_defaults_and_computes_london_date():
     assert settings.guest_name == "Nikita"
     assert settings.party_size == 2
     assert settings.booking_time == "17:00"
-    assert settings.openrouter_model == "anthropic/claude-haiku-5.5"
-    assert settings.openrouter_stt_model == "google/gemini-3.6-flash"
+    assert settings.openrouter_base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
+    assert settings.openrouter_model == "gemini-3.8-flash"
+    assert settings.openrouter_stt_model == "gemini-3.8-flash"
     assert settings.owner_escalation_chat == "me"
     assert settings.decision_log_path == Path("logs/decision.log")
 
@@ -69,3 +70,14 @@ def test_valid_confirmed_agent_turn_output():
     assert turn.confirmed_details is not None
     assert turn.confirmed_details.restaurant_name == "The Ivy Soho Brasserie"
     assert MessageModality.VOICE.value == "VOICE"
+
+
+def test_settings_accepts_gemini_api_key_alias(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza_test_key")
+    settings = Settings(
+        _env_file=None,
+        telegram_api_id=31939235,
+        telegram_api_hash="test_hash",
+    )
+    assert settings.openrouter_api_key == "AIza_test_key"

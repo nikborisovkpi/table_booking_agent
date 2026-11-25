@@ -25,9 +25,13 @@ def configure_console_utf8(*streams: Any) -> None:
 
 def _validate_runtime_settings(settings: Settings) -> None:
     key = settings.openrouter_api_key.strip()
-    if not key or key == "your_openrouter_api_key_here":
+    if not key or key in {
+        "your_openrouter_api_key_here",
+        "your_google_api_key_here",
+        "your_gemini_api_key_here",
+    }:
         raise SystemExit(
-            "❌ Помилка: вкажіть реальний OPENROUTER_API_KEY у файлі .env перед запуском агента."
+            "❌ Помилка: вкажіть реальний API-ключ (GEMINI_API_KEY або OPENROUTER_API_KEY) у файлі .env перед запуском агента."
         )
     target_norm = settings.target_chat.strip().lower()
     if settings.self_test_mode:
@@ -58,6 +62,7 @@ async def run_agent() -> None:
         f"Owner Q&A chat   : {settings.owner_escalation_chat} ({settings.owner_telegram})\n"
         f"Guest / Party    : {settings.guest_name} / {settings.party_size} guests\n"
         f"Requested slot   : {settings.booking_time} today ({settings.london_today_human()})\n"
+        f"LLM Endpoint     : {settings.openrouter_base_url}\n"
         f"Main LLM         : {settings.openrouter_model}\n"
         f"Voice STT / TTS  : {settings.openrouter_stt_model} / {settings.tts_voice}\n"
         f"Decision log     : {settings.decision_log_path}\n"

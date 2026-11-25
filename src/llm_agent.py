@@ -147,6 +147,30 @@ class BookingAgent:
             )
         return None
 
+    @staticmethod
+    def _extract_extra_content(obj: Any) -> Any:
+        extra_content = getattr(obj, "extra_content", None)
+        if extra_content is None:
+            model_extra = getattr(obj, "model_extra", None)
+            if isinstance(model_extra, dict):
+                extra_content = model_extra.get("extra_content")
+        return extra_content
+
+    @classmethod
+    def _serialize_tool_call(cls, tc: Any) -> dict[str, Any]:
+        entry: dict[str, Any] = {
+            "id": tc.id,
+            "type": "function",
+            "function": {
+                "name": tc.function.name,
+                "arguments": tc.function.arguments,
+            },
+        }
+        extra_content = cls._extract_extra_content(tc)
+        if extra_content is not None:
+            entry["extra_content"] = extra_content
+        return entry
+
     async def _run_turn_loop(
         self, working_messages: list[dict[str, Any]]
     ) -> tuple[AgentTurnOutput, list[tuple[str, str]]]:
@@ -189,18 +213,11 @@ class BookingAgent:
             assistant_entry: dict[str, Any] = {
                 "role": "assistant",
                 "content": getattr(msg, "content", None),
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in tool_calls
-                ],
+                "tool_calls": [self._serialize_tool_call(tc) for tc in tool_calls],
             }
+            msg_extra = self._extract_extra_content(msg)
+            if msg_extra is not None:
+                assistant_entry["extra_content"] = msg_extra
             working_messages.append(assistant_entry)
 
             accepted_turn: AgentTurnOutput | None = None
